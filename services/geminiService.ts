@@ -4,6 +4,7 @@
 */
 
 import { GoogleGenAI, GenerateContentResponse, Modality } from "@google/genai";
+import type { ItemCategory } from "../types";
 
 const fileToPart = async (file: File) => {
     const dataUrl = await new Promise<string>((resolve, reject) => {
@@ -56,7 +57,7 @@ const handleApiResponse = (response: GenerateContentResponse): string => {
 };
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
-const model = 'gemini-2.5-flash-image-preview';
+const model = 'gemini-2.5-flash-image';
 
 export const generateModelImage = async (userImage: File): Promise<string> => {
     const userImagePart = await fileToPart(userImage);
@@ -65,16 +66,17 @@ export const generateModelImage = async (userImage: File): Promise<string> => {
         model,
         contents: { parts: [userImagePart, { text: prompt }] },
         config: {
-            responseModalities: [Modality.IMAGE, Modality.TEXT],
+            responseModalities: [Modality.IMAGE],
         },
     });
     return handleApiResponse(response);
 };
 
-export const generateVirtualTryOnImage = async (modelImageUrl: string, garmentImage: File): Promise<string> => {
+export const generateVirtualTryOnImage = async (modelImageUrl: string, itemImage: File, category: ItemCategory): Promise<string> => {
     const modelImagePart = dataUrlToPart(modelImageUrl);
-    const garmentImagePart = await fileToPart(garmentImage);
-    const prompt = `You are an expert virtual try-on AI. You will be given a 'model image' and a 'garment image'. Your task is to create a new photorealistic image where the person from the 'model image' is wearing the clothing from the 'garment image'.
+    const itemImagePart = await fileToPart(itemImage);
+    
+    const garmentPrompt = `You are an expert virtual try-on AI. You will be given a 'model image' and a 'garment image'. Your task is to create a new photorealistic image where the person from the 'model image' is wearing the clothing from the 'garment image'.
 
 **Crucial Rules:**
 1.  **Complete Garment Replacement:** You MUST completely REMOVE and REPLACE the clothing item worn by the person in the 'model image' with the new garment. No part of the original clothing (e.g., collars, sleeves, patterns) should be visible in the final image.
@@ -82,11 +84,23 @@ export const generateVirtualTryOnImage = async (modelImageUrl: string, garmentIm
 3.  **Preserve the Background:** The entire background from the 'model image' MUST be preserved perfectly.
 4.  **Apply the Garment:** Realistically fit the new garment onto the person. It should adapt to their pose with natural folds, shadows, and lighting consistent with the original scene.
 5.  **Output:** Return ONLY the final, edited image. Do not include any text.`;
+
+    const accessoryPrompt = `You are an expert virtual try-on AI. You will be given a 'model image' and an 'accessory image'. Your task is to realistically ADD the item from the 'accessory image' onto the person in the 'model image'. Place it naturally where it would be worn (e.g., a hat on the head, glasses on the face, a necklace on the neck).
+    
+**Crucial Rules:**
+1.  **Additive Process:** DO NOT replace the existing clothing on the model. This is an addition.
+2.  **Preserve the Model:** The person's face, hair, body shape, pose, and existing clothing from the 'model image' MUST remain unchanged.
+3.  **Preserve the Background:** The entire background from the 'model image' MUST be preserved perfectly.
+4.  **Apply the Accessory:** Realistically fit the new accessory onto the person. It should adapt to their pose with natural perspective, shadows, and lighting consistent with the original scene.
+5.  **Output:** Return ONLY the final, edited image. Do not include any text.`;
+
+    const prompt = category === 'garment' ? garmentPrompt : accessoryPrompt;
+    
     const response = await ai.models.generateContent({
         model,
-        contents: { parts: [modelImagePart, garmentImagePart, { text: prompt }] },
+        contents: { parts: [modelImagePart, itemImagePart, { text: prompt }] },
         config: {
-            responseModalities: [Modality.IMAGE, Modality.TEXT],
+            responseModalities: [Modality.IMAGE],
         },
     });
     return handleApiResponse(response);
@@ -94,12 +108,12 @@ export const generateVirtualTryOnImage = async (modelImageUrl: string, garmentIm
 
 export const generatePoseVariation = async (tryOnImageUrl: string, poseInstruction: string): Promise<string> => {
     const tryOnImagePart = dataUrlToPart(tryOnImageUrl);
-    const prompt = `You are an expert fashion photographer AI. Take this image and regenerate it from a different perspective. The person, clothing, and background style must remain identical. The new perspective should be: "${poseInstruction}". Return ONLY the final image.`;
+    const prompt = `You are an expert fashion photographer AI. Take this image and regenerate it from a different perspective. The person, clothing, accessories, and background style must remain identical. The new perspective should be: "${poseInstruction}". Return ONLY the final image.`;
     const response = await ai.models.generateContent({
         model,
         contents: { parts: [tryOnImagePart, { text: prompt }] },
         config: {
-            responseModalities: [Modality.IMAGE, Modality.TEXT],
+            responseModalities: [Modality.IMAGE],
         },
     });
     return handleApiResponse(response);

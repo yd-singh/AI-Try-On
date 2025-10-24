@@ -2,13 +2,13 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
 */
-import React, { useState } from 'react';
-import type { WardrobeItem } from '../types';
+import React, { useState, useMemo } from 'react';
+import type { WardrobeItem, ItemCategory } from '../types';
 import { UploadCloudIcon, CheckCircleIcon } from './icons';
 
 interface WardrobePanelProps {
-  onGarmentSelect: (garmentFile: File, garmentInfo: WardrobeItem) => void;
-  activeGarmentIds: string[];
+  onItemSelect: (itemFile: File, itemInfo: WardrobeItem) => void;
+  activeItemIds: string[];
   isLoading: boolean;
   wardrobe: WardrobeItem[];
 }
@@ -48,17 +48,29 @@ const urlToFile = (url: string, filename: string): Promise<File> => {
     });
 };
 
-const WardrobePanel: React.FC<WardrobePanelProps> = ({ onGarmentSelect, activeGarmentIds, isLoading, wardrobe }) => {
+const WardrobePanel: React.FC<WardrobePanelProps> = ({ onItemSelect, activeItemIds, isLoading, wardrobe }) => {
     const [error, setError] = useState<string | null>(null);
 
-    const handleGarmentClick = async (item: WardrobeItem) => {
-        if (isLoading || activeGarmentIds.includes(item.id)) return;
+    const { garments, accessories } = useMemo(() => {
+        return wardrobe.reduce((acc, item) => {
+            if (item.category === 'accessory') {
+                acc.accessories.push(item);
+            } else {
+                acc.garments.push(item);
+            }
+            return acc;
+        }, { garments: [] as WardrobeItem[], accessories: [] as WardrobeItem[] });
+    }, [wardrobe]);
+
+
+    const handleItemClick = async (item: WardrobeItem) => {
+        if (isLoading || activeItemIds.includes(item.id)) return;
         setError(null);
         try {
             // If the item was from an upload, its URL is a blob URL. We need to fetch it to create a file.
             // If it was a default item, it's a regular URL. This handles both.
             const file = await urlToFile(item.url, item.name);
-            onGarmentSelect(file, item);
+            onItemSelect(file, item);
         } catch (err) {
             const detailedError = `Failed to load wardrobe item. This is often a CORS issue. Check the developer console for details.`;
             setError(detailedError);
@@ -66,56 +78,97 @@ const WardrobePanel: React.FC<WardrobePanelProps> = ({ onGarmentSelect, activeGa
         }
     };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, category: ItemCategory) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
             if (!file.type.startsWith('image/')) {
                 setError('Please select an image file.');
                 return;
             }
-            const customGarmentInfo: WardrobeItem = {
+            const customItemInfo: WardrobeItem = {
                 id: `custom-${Date.now()}`,
                 name: file.name,
                 url: URL.createObjectURL(file),
+                category,
             };
-            onGarmentSelect(file, customGarmentInfo);
+            onItemSelect(file, customItemInfo);
         }
     };
 
   return (
     <div className="pt-6 border-t border-slate-600/50">
         <h2 className="text-xl font-serif tracking-wider text-slate-200 mb-3">Wardrobe</h2>
-        <div className="grid grid-cols-3 gap-3">
-            {wardrobe.map((item) => {
-            const isActive = activeGarmentIds.includes(item.id);
-            return (
-                <button
-                key={item.id}
-                onClick={() => handleGarmentClick(item)}
-                disabled={isLoading || isActive}
-                className="relative aspect-square border rounded-lg overflow-hidden transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-100 group disabled:opacity-60 disabled:cursor-not-allowed"
-                aria-label={`Select ${item.name}`}
-                >
-                <img src={item.url} alt={item.name} className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <p className="text-white text-xs font-bold text-center p-1">{item.name}</p>
-                </div>
-                {isActive && (
-                    <div className="absolute inset-0 bg-gray-900/70 flex items-center justify-center">
-                        <CheckCircleIcon className="w-8 h-8 text-white" />
+        
+        {/* Garments Section */}
+        <div>
+            <h3 className="text-lg font-semibold text-slate-300 mb-2">Garments</h3>
+            <div className="grid grid-cols-3 gap-3">
+                {garments.map((item) => {
+                const isActive = activeItemIds.includes(item.id);
+                return (
+                    <button
+                    key={item.id}
+                    onClick={() => handleItemClick(item)}
+                    disabled={isLoading || isActive}
+                    className="relative aspect-square border rounded-lg overflow-hidden transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-100 group disabled:opacity-60 disabled:cursor-not-allowed"
+                    aria-label={`Select ${item.name}`}
+                    >
+                    <img src={item.url} alt={item.name} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <p className="text-white text-xs font-bold text-center p-1">{item.name}</p>
                     </div>
-                )}
-                </button>
-            );
-            })}
-            <label htmlFor="custom-garment-upload" className={`relative aspect-square border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-slate-500 transition-colors ${isLoading ? 'cursor-not-allowed bg-slate-800' : 'hover:border-slate-600 hover:text-slate-400 cursor-pointer'}`}>
-                <UploadCloudIcon className="w-6 h-6 mb-1"/>
-                <span className="text-xs text-center">Upload</span>
-                <input id="custom-garment-upload" type="file" className="hidden" accept="image/png, image/jpeg, image/webp, image/avif, image/heic, image/heif" onChange={handleFileChange} disabled={isLoading}/>
-            </label>
+                    {isActive && (
+                        <div className="absolute inset-0 bg-gray-900/70 flex items-center justify-center">
+                            <CheckCircleIcon className="w-8 h-8 text-white" />
+                        </div>
+                    )}
+                    </button>
+                );
+                })}
+                <label htmlFor="custom-garment-upload" className={`relative aspect-square border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-slate-500 transition-colors ${isLoading ? 'cursor-not-allowed bg-slate-800' : 'hover:border-slate-600 hover:text-slate-400 cursor-pointer'}`}>
+                    <UploadCloudIcon className="w-6 h-6 mb-1"/>
+                    <span className="text-xs text-center">Upload</span>
+                    <input id="custom-garment-upload" type="file" className="hidden" accept="image/png, image/jpeg, image/webp, image/avif, image/heic, image/heif" onChange={(e) => handleFileChange(e, 'garment')} disabled={isLoading}/>
+                </label>
+            </div>
         </div>
+        
+        {/* Accessories Section */}
+        <div className="mt-6">
+            <h3 className="text-lg font-semibold text-slate-300 mb-2">Accessories</h3>
+            <div className="grid grid-cols-3 gap-3">
+                {accessories.map((item) => {
+                const isActive = activeItemIds.includes(item.id);
+                return (
+                    <button
+                    key={item.id}
+                    onClick={() => handleItemClick(item)}
+                    disabled={isLoading || isActive}
+                    className="relative aspect-square border rounded-lg overflow-hidden transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-100 group disabled:opacity-60 disabled:cursor-not-allowed"
+                    aria-label={`Select ${item.name}`}
+                    >
+                    <img src={item.url} alt={item.name} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <p className="text-white text-xs font-bold text-center p-1">{item.name}</p>
+                    </div>
+                    {isActive && (
+                        <div className="absolute inset-0 bg-gray-900/70 flex items-center justify-center">
+                            <CheckCircleIcon className="w-8 h-8 text-white" />
+                        </div>
+                    )}
+                    </button>
+                );
+                })}
+                <label htmlFor="custom-accessory-upload" className={`relative aspect-square border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-slate-500 transition-colors ${isLoading ? 'cursor-not-allowed bg-slate-800' : 'hover:border-slate-600 hover:text-slate-400 cursor-pointer'}`}>
+                    <UploadCloudIcon className="w-6 h-6 mb-1"/>
+                    <span className="text-xs text-center">Upload</span>
+                    <input id="custom-accessory-upload" type="file" className="hidden" accept="image/png, image/jpeg, image/webp, image/avif, image/heic, image/heif" onChange={(e) => handleFileChange(e, 'accessory')} disabled={isLoading}/>
+                </label>
+            </div>
+        </div>
+
         {wardrobe.length === 0 && (
-             <p className="text-center text-sm text-gray-500 mt-4">Your uploaded garments will appear here.</p>
+             <p className="text-center text-sm text-gray-500 mt-4">Your uploaded items will appear here.</p>
         )}
         {error && <p className="text-red-400 text-sm mt-4">{error}</p>}
     </div>

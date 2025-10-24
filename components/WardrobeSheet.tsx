@@ -50,6 +50,8 @@ const WardrobeModal: React.FC<WardrobeModalProps> = ({ isOpen, onClose, onGarmen
                 id: `custom-${Date.now()}`,
                 name: file.name,
                 url: URL.createObjectURL(file), // for preview, not used by API
+                // FIX: Property 'category' is missing.
+                category: 'garment',
             };
             onGarmentSelect(file, customGarmentInfo);
         }

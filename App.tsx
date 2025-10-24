@@ -68,8 +68,8 @@ const App: React.FC = () => {
     [outfitHistory, currentOutfitIndex]
   );
   
-  const activeGarmentIds = useMemo(() => 
-    activeOutfitLayers.map(layer => layer.garment?.id).filter(Boolean) as string[], 
+  const activeItemIds = useMemo(() => 
+    activeOutfitLayers.map(layer => layer.item?.id).filter(Boolean) as string[], 
     [activeOutfitLayers]
   );
   
@@ -93,7 +93,7 @@ const App: React.FC = () => {
   const handleModelFinalized = (url: string) => {
     setModelImageUrl(url);
     setOutfitHistory([{
-      garment: null,
+      item: null,
       poseImages: { [POSE_INSTRUCTIONS[0]]: url }
     }]);
     setCurrentOutfitIndex(0);
@@ -111,12 +111,12 @@ const App: React.FC = () => {
     setWardrobe(defaultWardrobe);
   };
 
-  const handleGarmentSelect = useCallback(async (garmentFile: File, garmentInfo: WardrobeItem) => {
+  const handleItemSelect = useCallback(async (itemFile: File, itemInfo: WardrobeItem) => {
     if (!displayImageUrl || isLoading) return;
 
     // Caching: Check if we are re-applying a previously generated layer
     const nextLayer = outfitHistory[currentOutfitIndex + 1];
-    if (nextLayer && nextLayer.garment?.id === garmentInfo.id) {
+    if (nextLayer && nextLayer.item?.id === itemInfo.id) {
         setCurrentOutfitIndex(prev => prev + 1);
         setCurrentPoseIndex(0); // Reset pose when changing layer
         return;
@@ -124,14 +124,14 @@ const App: React.FC = () => {
 
     setError(null);
     setIsLoading(true);
-    setLoadingMessage(`Adding ${garmentInfo.name}...`);
+    setLoadingMessage(`Adding ${itemInfo.name}...`);
 
     try {
-      const newImageUrl = await generateVirtualTryOnImage(displayImageUrl, garmentFile);
+      const newImageUrl = await generateVirtualTryOnImage(displayImageUrl, itemFile, itemInfo.category);
       const currentPoseInstruction = POSE_INSTRUCTIONS[currentPoseIndex];
       
       const newLayer: OutfitLayer = { 
-        garment: garmentInfo, 
+        item: itemInfo, 
         poseImages: { [currentPoseInstruction]: newImageUrl } 
       };
 
@@ -144,20 +144,20 @@ const App: React.FC = () => {
       
       // Add to personal wardrobe if it's not already there
       setWardrobe(prev => {
-        if (prev.find(item => item.id === garmentInfo.id)) {
+        if (prev.find(i => i.id === itemInfo.id)) {
             return prev;
         }
-        return [...prev, garmentInfo];
+        return [...prev, itemInfo];
       });
     } catch (err) {
-      setError(getFriendlyErrorMessage(err, 'Failed to apply garment'));
+      setError(getFriendlyErrorMessage(err, 'Failed to apply item'));
     } finally {
       setIsLoading(false);
       setLoadingMessage('');
     }
   }, [displayImageUrl, isLoading, currentPoseIndex, outfitHistory, currentOutfitIndex]);
 
-  const handleRemoveLastGarment = () => {
+  const handleRemoveLastItem = () => {
     if (currentOutfitIndex > 0) {
       setCurrentOutfitIndex(prevIndex => prevIndex - 1);
       setCurrentPoseIndex(0); // Reset pose to default when removing a layer
@@ -272,11 +272,11 @@ const App: React.FC = () => {
                     )}
                     <OutfitStack 
                       outfitHistory={activeOutfitLayers}
-                      onRemoveLastGarment={handleRemoveLastGarment}
+                      onRemoveLastItem={handleRemoveLastItem}
                     />
                     <WardrobePanel
-                      onGarmentSelect={handleGarmentSelect}
-                      activeGarmentIds={activeGarmentIds}
+                      onItemSelect={handleItemSelect}
+                      activeItemIds={activeItemIds}
                       isLoading={isLoading}
                       wardrobe={wardrobe}
                     />

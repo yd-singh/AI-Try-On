@@ -20,25 +20,31 @@ const OutfitStack: React.FC<OutfitStackProps> = ({ outfitHistory, onRemoveLastGa
       <div className="space-y-2 flex-grow">
         {outfitHistory.map((layer, index) => (
           <div
-            key={layer.garment?.id || 'base'}
+            // FIX: Property 'garment' does not exist on type 'OutfitLayer'. Did you mean 'item'?
+            key={layer.item?.id || 'base'}
             className="flex items-center justify-between bg-white/50 p-2 rounded-lg animate-fade-in border border-gray-200/80 shadow-sm"
           >
             <div className="flex items-center overflow-hidden">
                 <span className="flex-shrink-0 flex items-center justify-center w-6 h-6 mr-3 text-xs font-bold text-gray-600 bg-gray-200 rounded-full">
                   {index + 1}
                 </span>
-                {layer.garment && (
-                    <img src={layer.garment.url} alt={layer.garment.name} className="flex-shrink-0 w-12 h-12 object-cover rounded-md mr-3" />
+                {/* FIX: Property 'garment' does not exist on type 'OutfitLayer'. Did you mean 'item'? */}
+                {layer.item && (
+                    // FIX: Property 'garment' does not exist on type 'OutfitLayer'. Did you mean 'item'?
+                    <img src={layer.item.url} alt={layer.item.name} className="flex-shrink-0 w-12 h-12 object-cover rounded-md mr-3" />
                 )}
-                <span className="font-semibold text-gray-800 truncate" title={layer.garment?.name}>
-                  {layer.garment ? layer.garment.name : 'Base Model'}
+                {/* FIX: Property 'garment' does not exist on type 'OutfitLayer'. Did you mean 'item'? */}
+                <span className="font-semibold text-gray-800 truncate" title={layer.item?.name}>
+                  {/* FIX: Property 'garment' does not exist on type 'OutfitLayer'. Did you mean 'item'? */}
+                  {layer.item ? layer.item.name : 'Base Model'}
                 </span>
             </div>
             {index > 0 && index === outfitHistory.length - 1 && (
                <button
                 onClick={onRemoveLastGarment}
                 className="flex-shrink-0 text-gray-500 hover:text-red-600 transition-colors p-2 rounded-md hover:bg-red-50"
-                aria-label={`Remove ${layer.garment?.name}`}
+                // FIX: Property 'garment' does not exist on type 'OutfitLayer'. Did you mean 'item'?
+                aria-label={`Remove ${layer.item?.name}`}
               >
                 <Trash2Icon className="w-5 h-5" />
               </button>
