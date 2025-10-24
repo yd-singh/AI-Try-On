@@ -1,0 +1,77 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+*/
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@keyframes animated-gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+body {
+  color: #e2e8f0; /* slate-200 */
+  background: #020617; /* slate-950 */
+  background: linear-gradient(300deg, #020617, #1e293b, #0f172a, #1e293b, #020617);
+  background-size: 300% 300%;
+  animation: animated-gradient 18s ease-in-out infinite;
+}
+
+/* Animation for gentle fade-in of components */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-in {
+  animation: fade-in 0.6s ease-out forwards;
+}
+
+/* Animation for the main canvas image to zoom into focus */
+@keyframes zoom-in {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.animate-zoom-in {
+  animation: zoom-in 0.7s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+/* Add a subtle halo effect to the main image */
+.image-halo {
+  box-shadow: 0 0 45px 5px rgba(79, 70, 229, 0.15),
+              0 0 15px 2px rgba(255, 255, 255, 0.03);
+}
+
+/* Custom scrollbar for a more integrated look */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #475569; /* slate-600 scrollbar */
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #64748b; /* slate-500 on hover */
+}
