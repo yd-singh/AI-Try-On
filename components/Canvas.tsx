@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
 */
 import React, { useState } from 'react';
-import { RotateCcwIcon, ChevronLeftIcon, ChevronRightIcon } from './icons';
+import { RotateCcwIcon, ChevronLeftIcon, ChevronRightIcon, DownloadIcon } from './icons';
 import Spinner from './Spinner';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -16,11 +16,27 @@ interface CanvasProps {
   poseInstructions: string[];
   currentPoseIndex: number;
   availablePoseKeys: string[];
+  onDownloadAllViews: () => void;
 }
 
-const Canvas: React.FC<CanvasProps> = ({ displayImageUrl, onStartOver, isLoading, loadingMessage, onSelectPose, poseInstructions, currentPoseIndex, availablePoseKeys }) => {
+const Canvas: React.FC<CanvasProps> = ({ displayImageUrl, onStartOver, isLoading, loadingMessage, onSelectPose, poseInstructions, currentPoseIndex, availablePoseKeys, onDownloadAllViews }) => {
   const [isPoseMenuOpen, setIsPoseMenuOpen] = useState(false);
-  
+  const [isDownloadMenuOpen, setIsDownloadMenuOpen] = useState(false);
+
+  const handleDownloadCurrent = () => {
+    if (!displayImageUrl) return;
+    const poseName = poseInstructions[currentPoseIndex].replace(/[ ,/]/g, '_').toLowerCase();
+    const filename = `virtual-try-on-${poseName}.png`;
+
+    const link = document.createElement('a');
+    link.href = displayImageUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setIsDownloadMenuOpen(false);
+  };
+
   const handlePreviousPose = () => {
     if (isLoading || availablePoseKeys.length <= 1) return;
 
@@ -71,14 +87,50 @@ const Canvas: React.FC<CanvasProps> = ({ displayImageUrl, onStartOver, isLoading
   
   return (
     <div className="w-full h-full flex items-center justify-center p-4 relative animate-zoom-in group">
-      {/* Start Over Button */}
-      <button 
-          onClick={onStartOver}
-          className="absolute top-4 left-4 z-30 flex items-center justify-center text-center bg-slate-800/60 border border-slate-700/80 text-slate-200 font-medium py-2 px-4 rounded-full transition-all duration-200 ease-in-out hover:bg-slate-700 hover:border-slate-600 active:scale-95 text-sm backdrop-blur-lg"
-      >
-          <RotateCcwIcon className="w-4 h-4 mr-2" />
-          Start Over
-      </button>
+      {/* Top Left Controls */}
+      <div className="absolute top-4 left-4 z-30 flex items-center gap-2">
+        <button 
+            onClick={onStartOver}
+            className="flex items-center justify-center text-center bg-slate-800/60 border border-slate-700/80 text-slate-200 font-medium py-2 px-4 rounded-full transition-all duration-200 ease-in-out hover:bg-slate-700 hover:border-slate-600 active:scale-95 text-sm backdrop-blur-lg"
+        >
+            <RotateCcwIcon className="w-4 h-4 mr-2" />
+            Start Over
+        </button>
+
+        <div className="relative">
+          <button 
+              onClick={() => setIsDownloadMenuOpen(prev => !prev)}
+              className="flex items-center justify-center text-center bg-slate-800/60 border border-slate-700/80 text-slate-200 font-medium p-2 rounded-full transition-all duration-200 ease-in-out hover:bg-slate-700 hover:border-slate-600 active:scale-95 text-sm backdrop-blur-lg"
+              aria-label="Download options"
+          >
+              <DownloadIcon className="w-5 h-5" />
+          </button>
+          <AnimatePresence>
+            {isDownloadMenuOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                className="absolute top-full mt-2 w-48 bg-slate-900/80 backdrop-blur-lg rounded-lg p-2 border border-slate-700/80 shadow-2xl"
+              >
+                <button
+                  onClick={handleDownloadCurrent}
+                  className="w-full text-left text-sm font-medium text-slate-300 p-2 rounded-md hover:bg-slate-700/70"
+                >
+                  Download Current View
+                </button>
+                <button
+                  onClick={onDownloadAllViews}
+                  className="w-full text-left text-sm font-medium text-slate-300 p-2 rounded-md hover:bg-slate-700/70"
+                >
+                  Download All Views
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
 
       {/* Image Display or Placeholder */}
       <div className="relative w-full h-full flex items-center justify-center">

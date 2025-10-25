@@ -6,12 +6,12 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const REMIX_SUGGESTIONS = [
-	"🪩 Remix idea: Turn your looks into a digital lookbook that’s share-worthy (and a little brag-worthy).", 
-	"🛍️ Remix idea: Link fashion to function — pull real products via an e-commerce API to shop the vibe.",
-	"🕶️ Remix idea: Accessorize like an AI stylist — try adding shades, hats, or a statement bag.",
-	"⭐ Remix idea: Give every outfit a style score — because data should serve the drama.",
-	"💾 Remix idea: Save your slays — build a personal closet of your top AI looks.",
-	"🎨 Remix idea: Explore color magic — generate fresh palettes and alternate colorways for your fits."
+	"Remix Idea: Create a shareable lookbook",
+	"Remix Idea: Shop similar styles via API",
+	"Remix Idea: Add accessories to your look",
+	"Remix Idea: Give outfits a style score",
+	"Remix Idea: Save your favorite outfits",
+	"Remix Idea: Try new color combinations"
 ];
 
 interface FooterProps {

@@ -16,6 +16,7 @@ import { defaultWardrobe } from './wardrobe';
 import Footer from './components/Footer';
 import { getFriendlyErrorMessage } from './lib/utils';
 import Spinner from './components/Spinner';
+import JSZip from 'jszip';
 
 const POSE_INSTRUCTIONS = [
   "Full frontal view, hands on hips",
@@ -48,6 +49,21 @@ const useMediaQuery = (query: string): boolean => {
   }, [query, matches]);
 
   return matches;
+};
+
+// Helper to convert a data URL to a Blob, necessary for zipping.
+const dataURLtoBlob = (dataurl: string): Blob => {
+  const arr = dataurl.split(',');
+  const mimeMatch = arr[0].match(/:(.*?);/);
+  if (!mimeMatch) throw new Error('Invalid data URL');
+  const mime = mimeMatch[1];
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new Blob([u8arr], { type: mime });
 };
 
 
@@ -153,7 +169,8 @@ const App: React.FC = () => {
         }
         return [...prev, itemInfo];
       });
-    } catch (err) {
+      // Fix for error: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+    } catch (err: any) {
       // FIX: The `getFriendlyErrorMessage` function now accepts `unknown`.
       setError(getFriendlyErrorMessage(err, 'Failed to apply item'));
     } finally {
@@ -202,7 +219,8 @@ const App: React.FC = () => {
         updatedLayer.poseImages[poseInstruction] = newImageUrl;
         return newHistory;
       });
-    } catch (err) {
+      // Fix for error: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+    } catch (err: any) {
       // FIX: The `getFriendlyErrorMessage` function now accepts `unknown`.
       setError(getFriendlyErrorMessage(err, 'Failed to change pose'));
       // Revert pose index on failure
@@ -212,6 +230,83 @@ const App: React.FC = () => {
       setLoadingMessage('');
     }
   }, [currentPoseIndex, outfitHistory, isLoading, currentOutfitIndex]);
+
+  const handleDownloadAllViews = useCallback(async () => {
+    if (isLoading || outfitHistory.length === 0) return;
+
+    setError(null);
+    setIsLoading(true);
+
+    try {
+        const currentLayer = outfitHistory[currentOutfitIndex];
+        const baseImageForPoseChange = Object.values(currentLayer.poseImages)[0];
+
+        const posesToGenerate = POSE_INSTRUCTIONS.filter(
+            pose => !currentLayer.poseImages[pose]
+        );
+        
+        const allPoseImages = { ...currentLayer.poseImages };
+
+        if (posesToGenerate.length > 0) {
+            setLoadingMessage(`Generating ${posesToGenerate.length} missing pose(s)...`);
+
+            const generationPromises = posesToGenerate.map(poseInstruction => 
+                generatePoseVariation(baseImageForPoseChange, poseInstruction)
+                    .then(newImageUrl => ({ poseInstruction, newImageUrl }))
+            );
+            
+            const generatedResults = await Promise.all(generationPromises);
+
+            // Add new images to our temporary collection and update state in the background
+            generatedResults.forEach(({ poseInstruction, newImageUrl }) => {
+              allPoseImages[poseInstruction] = newImageUrl;
+            });
+            
+            setOutfitHistory(prevHistory => {
+                const newHistory = [...prevHistory];
+                const updatedLayer = { ...newHistory[currentOutfitIndex] };
+                // Create a new object for poseImages to ensure react detects the change
+                updatedLayer.poseImages = { ...updatedLayer.poseImages }; 
+                generatedResults.forEach(({ poseInstruction, newImageUrl }) => {
+                    updatedLayer.poseImages[poseInstruction] = newImageUrl;
+                });
+                newHistory[currentOutfitIndex] = updatedLayer;
+                return newHistory;
+            });
+        }
+        
+        setLoadingMessage('Packaging files for download...');
+        await new Promise(resolve => setTimeout(resolve, 100)); // allow UI to update
+
+        const zip = new JSZip();
+        const outfitName = currentLayer.item?.name.replace(/\s/g, '_') || 'base_model';
+        const folder = zip.folder(outfitName);
+        if (!folder) throw new Error("Could not create zip folder");
+
+        Object.entries(allPoseImages).forEach(([pose, imageUrl], index) => {
+            const blob = dataURLtoBlob(imageUrl);
+            const filename = `${index + 1}_${pose.replace(/[ ,/]/g, '_').toLowerCase()}.png`;
+            folder.file(filename, blob);
+        });
+
+        const content = await zip.generateAsync({ type: 'blob' });
+        
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(content);
+        link.download = `${outfitName}_all_views.zip`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+
+    // Fix for error: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+    } catch (err: any) {
+        setError(getFriendlyErrorMessage(err, 'Failed to download all views'));
+    } finally {
+        setIsLoading(false);
+        setLoadingMessage('');
+    }
+  }, [isLoading, outfitHistory, currentOutfitIndex]);
 
   const viewVariants = {
     initial: { opacity: 0, y: 15 },
@@ -255,6 +350,7 @@ const App: React.FC = () => {
                   poseInstructions={POSE_INSTRUCTIONS}
                   currentPoseIndex={currentPoseIndex}
                   availablePoseKeys={availablePoseKeys}
+                  onDownloadAllViews={handleDownloadAllViews}
                 />
               </div>
 
