@@ -38,6 +38,7 @@ const StartScreen: React.FC<StartScreenProps> = ({ onModelFinalized }) => {
             const result = await generateModelImage(file);
             setGeneratedModelUrl(result);
         } catch (err) {
+            // FIX: The `getFriendlyErrorMessage` function now accepts `unknown`.
             setError(getFriendlyErrorMessage(err, 'Failed to create model'));
             setUserImageUrl(null);
         } finally {

@@ -52,6 +52,7 @@ const useMediaQuery = (query: string): boolean => {
 
 
 const App: React.FC = () => {
+  const isMobile = useMediaQuery('(max-width: 767px)');
   const [modelImageUrl, setModelImageUrl] = useState<string | null>(null);
   const [outfitHistory, setOutfitHistory] = useState<OutfitLayer[]>([]);
   const [currentOutfitIndex, setCurrentOutfitIndex] = useState(0);
@@ -59,9 +60,12 @@ const App: React.FC = () => {
   const [loadingMessage, setLoadingMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [currentPoseIndex, setCurrentPoseIndex] = useState(0);
-  const [isSheetCollapsed, setIsSheetCollapsed] = useState(false);
+  const [isSheetCollapsed, setIsSheetCollapsed] = useState(isMobile);
   const [wardrobe, setWardrobe] = useState<WardrobeItem[]>(defaultWardrobe);
-  const isMobile = useMediaQuery('(max-width: 767px)');
+
+  useEffect(() => {
+    setIsSheetCollapsed(isMobile);
+  }, [isMobile]);
 
   const activeOutfitLayers = useMemo(() => 
     outfitHistory.slice(0, currentOutfitIndex + 1), 
@@ -107,7 +111,7 @@ const App: React.FC = () => {
     setLoadingMessage('');
     setError(null);
     setCurrentPoseIndex(0);
-    setIsSheetCollapsed(false);
+    setIsSheetCollapsed(isMobile);
     setWardrobe(defaultWardrobe);
   };
 
@@ -150,6 +154,7 @@ const App: React.FC = () => {
         return [...prev, itemInfo];
       });
     } catch (err) {
+      // FIX: The `getFriendlyErrorMessage` function now accepts `unknown`.
       setError(getFriendlyErrorMessage(err, 'Failed to apply item'));
     } finally {
       setIsLoading(false);
@@ -198,6 +203,7 @@ const App: React.FC = () => {
         return newHistory;
       });
     } catch (err) {
+      // FIX: The `getFriendlyErrorMessage` function now accepts `unknown`.
       setError(getFriendlyErrorMessage(err, 'Failed to change pose'));
       // Revert pose index on failure
       setCurrentPoseIndex(prevPoseIndex);
@@ -238,8 +244,8 @@ const App: React.FC = () => {
             exit="exit"
             transition={{ duration: 0.5, ease: 'easeInOut' }}
           >
-            <main className="flex-grow relative flex flex-col md:flex-row overflow-hidden">
-              <div className="w-full h-full flex-grow flex items-center justify-center bg-transparent pb-16 relative">
+            <main className="flex-grow flex flex-col md:flex-row overflow-hidden">
+              <div className="w-full flex-grow flex items-center justify-center bg-transparent relative">
                 <Canvas 
                   displayImageUrl={displayImageUrl}
                   onStartOver={handleStartOver}
@@ -253,17 +259,16 @@ const App: React.FC = () => {
               </div>
 
               <aside 
-                className={`absolute md:relative md:flex-shrink-0 bottom-0 right-0 h-auto md:h-full w-full md:w-1/3 md:max-w-sm bg-slate-900/50 backdrop-blur-lg flex flex-col border-t md:border-t-0 md:border-l border-slate-700/60 transition-transform duration-500 ease-in-out ${isSheetCollapsed ? 'translate-y-[calc(100%-4.5rem)]' : 'translate-y-0'} md:translate-y-0`}
-                style={{ transitionProperty: 'transform' }}
+                className={`flex-shrink-0 w-full md:w-1/3 md:max-w-sm bg-slate-900/50 backdrop-blur-lg flex flex-col border-t md:border-t-0 md:border-l border-slate-700/60 transition-all duration-500 ease-in-out overflow-hidden ${isSheetCollapsed ? 'h-14' : 'h-[60vh]'} md:h-full`}
               >
                   <button 
                     onClick={() => setIsSheetCollapsed(!isSheetCollapsed)} 
-                    className="md:hidden w-full h-8 flex items-center justify-center bg-slate-800/50"
+                    className="md:hidden w-full h-8 flex-shrink-0 flex items-center justify-center bg-slate-800/50"
                     aria-label={isSheetCollapsed ? 'Expand panel' : 'Collapse panel'}
                   >
                     {isSheetCollapsed ? <ChevronUpIcon className="w-6 h-6 text-slate-400" /> : <ChevronDownIcon className="w-6 h-6 text-slate-400" />}
                   </button>
-                  <div className="p-4 md:p-6 pb-20 overflow-y-auto flex-grow flex flex-col gap-8">
+                  <div className="p-4 md:p-6 overflow-y-auto flex-grow flex flex-col gap-4 md:gap-8">
                     {error && (
                       <div className="bg-red-500/10 border-l-4 border-red-500 text-red-300 p-4 mb-4 rounded-md" role="alert">
                         <p className="font-bold">Error</p>

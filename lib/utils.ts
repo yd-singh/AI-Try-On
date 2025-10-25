@@ -9,6 +9,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// FIX: Changed type of 'error' from 'any' to 'unknown' for improved type safety.
 export function getFriendlyErrorMessage(error: unknown, context: string): string {
     let rawMessage = 'An unknown error occurred.';
     if (error instanceof Error) {

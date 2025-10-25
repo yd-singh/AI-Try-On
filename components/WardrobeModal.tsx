@@ -96,7 +96,7 @@ const WardrobePanel: React.FC<WardrobePanelProps> = ({ onItemSelect, activeItemI
     };
 
   return (
-    <div className="pt-6 border-t border-slate-600/50">
+    <div className="pt-4 md:pt-6 border-t border-slate-600/50">
         <h2 className="text-xl font-serif tracking-wider text-slate-200 mb-3">Wardrobe</h2>
         
         {/* Garments Section */}
